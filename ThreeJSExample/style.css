@@ -1,0 +1,11 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+#c {
+  float: left;
+  padding: 5px;
+  width: 300px;
+  height: 150px;
+}

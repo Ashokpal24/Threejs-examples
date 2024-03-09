@@ -51,6 +51,19 @@ function main() {
   light.position.set(-1, 2, 4);
   scene.add(light);
 
+  function resizeRenderToDisplaySize(renderer) {
+    const tempCanvas = renderer.domElement;
+    const pixelRatio = window.devicePixelRatio;
+    const width = Math.floor(tempCanvas.clientWidth * pixelRatio);
+    const height = Math.floor(tempCanvas.clientHeight * pixelRatio);
+    const needResize =
+      tempCanvas.width != width || tempCanvas.height !== height;
+    if (needResize) {
+      renderer.setSize(width, height, false);
+    }
+    return needResize;
+  }
+
   function render(time) {
     time *= 0.001;
     meshInstances.forEach((meshI, index) => {
@@ -59,7 +72,11 @@ function main() {
       meshI.rotation.x = rotationSpeed;
       meshI.rotation.y = rotationSpeed;
     });
-
+    if (resizeRenderToDisplaySize(renderer)) {
+      const tempCanvas = renderer.domElement;
+      camera.aspect = tempCanvas.clientWidth / tempCanvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
     renderer.render(scene, camera);
     requestAnimationFrame(render);
   }

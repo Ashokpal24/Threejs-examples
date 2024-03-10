@@ -2,7 +2,7 @@ import * as THREE from "three";
 import {
   FontLoader,
   TextGeometry,
-} from "./node_modules/three/examples/jsm/Addons.js";
+} from "../node_modules/three/examples/jsm/Addons.js";
 
 function main() {
   let meshInstances = [];

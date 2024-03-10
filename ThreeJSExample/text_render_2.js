@@ -48,7 +48,7 @@ function main() {
     });
   }
   async function createText() {
-    const font = await loadFont("./public/fonts/Poppins_Bold.json");
+    const font = await loadFont("./fonts/Poppins_Bold.json");
     const textGeometry = new TextGeometry("Ashok", {
       font,
       size: 3.0,
@@ -59,9 +59,38 @@ function main() {
       bevelSize: 0.3,
       bevelSegments: 5,
     });
-    meshInstances.push(createMesh(textGeometry, 0x66dec0, 0, 0, -20));
+    const material = new THREE.MeshPhongMaterial({
+      color: "orange",
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(textGeometry, material);
+    textGeometry.computeBoundingBox();
+    textGeometry.boundingBox.getCenter(mesh.position).multiplyScalar(-1);
+
+    const parent = new THREE.Object3D();
+    parent.add(mesh);
+    parent.position.z = -20;
+    scene.add(parent);
+    meshInstances.push(parent);
   }
   createText();
+
+  const radius = 7;
+  const widthSegments = 12;
+  const heightSegments = 8;
+  const geometry = new THREE.SphereGeometry(
+    radius,
+    widthSegments,
+    heightSegments,
+  );
+  const material = new THREE.PointsMaterial({
+    color: "blue",
+    size: 0.2,
+  });
+  const points = new THREE.Points(geometry, material);
+  points.position.z = -20;
+  meshInstances.push(points);
+  scene.add(points);
 
   function resizeRenderToDisplaySize(renderer) {
     const tempCanvas = renderer.domElement;

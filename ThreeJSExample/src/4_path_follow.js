@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { Wireframe } from "three/examples/jsm/Addons";
 function main() {
   const canvas = document.getElementById("c");
   const renderer = new THREE.WebGLRenderer({

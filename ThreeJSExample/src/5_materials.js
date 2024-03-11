@@ -75,13 +75,17 @@ function main() {
     None: null,
     roughnessMap: torusMaterial.roughnessMap,
   };
-  addRoughnessTexture(torusRoughnessTexture, "roughnessMap");
+  addRoughnessTexture(torusRoughnessTextures, "roughnessMap");
 
   folder
     .add(torusData, "roughnessMap", Object.keys(torusRoughnessTextures))
     .onChange(
       changeTexture(torusMaterial, "roughnessMap", torusRoughnessTextures),
     );
+
+  folder.add(torusMaterial, "visible");
+  folder.add(torusMaterial, "wireframe");
+
   const ambientLight = new THREE.AmbientLight(0x000000);
   scene.add(ambientLight);
 

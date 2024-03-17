@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/Addons";
+import { LightProbeHelper, OrbitControls } from "three/examples/jsm/Addons";
 import GUI from "lil-gui";
 
 class ColorGUIHelper {
@@ -52,6 +52,8 @@ function main() {
   const canvas = document.getElementById("c");
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
   renderer.shadowMap.enabled = true;
+  renderer.setScissorTest(true);
+
   const scene = new THREE.Scene();
   const gui = new GUI();
 
@@ -60,13 +62,25 @@ function main() {
 
   const loadingElem = document.querySelector("#loading");
   const progressBarElem = loadingElem.querySelector(".progressbar");
+  const view1Elem = document.querySelector("#view1");
+  const view2Elem = document.querySelector("#view2");
 
   const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100);
   camera.position.set(0, 10, 20);
   scene.add(camera);
-  const controls = new OrbitControls(camera, canvas);
+  const cameraHelper = new THREE.CameraHelper(camera);
+  scene.add(cameraHelper);
+  const controls = new OrbitControls(camera, view1Elem);
   controls.target.set(0, 5, 0);
   controls.update();
+
+  const camera2 = new THREE.PerspectiveCamera(60, 2, 0.1, 500);
+  camera2.position.set(40, 10, 30);
+  camera2.lookAt(0, 5, 0);
+
+  const controls2 = new OrbitControls(camera2, view2Elem);
+  controls2.target.set(0, 5, 0);
+  controls2.update();
 
   const checkerTexture = loader.load("./texture/checker.png");
   const chadTexture = loader.load("./texture/gigachad.webp");
@@ -118,16 +132,10 @@ function main() {
   makeXYZGUI(gui, light.position, "position", updateLight);
   makeXYZGUI(gui, light.target.position, "target", updateLight);
 
-  gui.add(camera, "fov", 1, 180).onChange(updateCamera);
+  gui.add(camera, "fov", 1, 180);
   const minMaxGUIHelper = new MinMaxGUIHelper(camera, "near", "far", 0.1);
-  gui
-    .add(minMaxGUIHelper, "min", 0.1, 50, 0.1)
-    .name("near")
-    .onChange(updateCamera);
-  gui
-    .add(minMaxGUIHelper, "max", 0.1, 50, 0.1)
-    .name("far")
-    .onChange(updateCamera);
+  gui.add(minMaxGUIHelper, "min", 0.1, 50, 0.1).name("near");
+  gui.add(minMaxGUIHelper, "max", 0.1, 50, 0.1).name("far");
 
   loadingManager.onLoad = () => {
     loadingElem.style.display = "none";
@@ -168,6 +176,44 @@ function main() {
     const progress = itemsLoaded / itemsTotal;
     progressBarElem.style.transform = `scaleX(${progress})`;
   };
+  function setScissorForElement(elem) {
+    const canvasRect = canvas.getBoundingClientRect();
+    const elemRect = elem.getBoundingClientRect();
+
+    // compute a canvas relative rectangle
+    const right = Math.min(elemRect.right, canvasRect.right);
+    const left = Math.max(0, elemRect.left - canvasRect.left);
+    const bottom = Math.min(elemRect.bottom, canvasRect.bottom);
+    const top = Math.max(0, elemRect.top - canvasRect.top);
+
+    const width = Math.min(canvasRect.width, right - left);
+    const height = Math.min(canvasRect.height, bottom - top);
+    // console.log(
+    //   "canvas: ",
+    //   canvasRect,
+    //   "element: ",
+    //   elemRect,
+    //   "width: ",
+    //   width,
+    //   "height: ",
+    //   height,
+    //   "left",
+    //   left,
+    //   "right",
+    //   right,
+    //   "classname",
+    //   elem.id,
+    // );
+
+    // setup the scissor to only render to that part of the canvas
+    const positiveYUpBottom = canvasRect.height - bottom;
+    renderer.setScissor(left, positiveYUpBottom, width, height);
+    renderer.setViewport(left, positiveYUpBottom, width, height);
+
+    // return the aspect
+    return width / height;
+  }
+
   function resizeRendererToDisplaySize(renderer) {
     const canvas = renderer.domElement;
     const width = canvas.clientWidth;
@@ -181,13 +227,45 @@ function main() {
   }
 
   function render() {
-    if (resizeRendererToDisplaySize(renderer)) {
-      const canvas = renderer.domElement;
-      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    resizeRendererToDisplaySize(renderer);
+
+    // turn on the scissor
+
+    // render the original view
+    {
+      // adjust the camera for this aspect
+      let aspect1 = setScissorForElement(view1Elem);
+
+      camera.aspect = aspect1;
       camera.updateProjectionMatrix();
+      cameraHelper.update();
+
+      // don't draw the camera helper in the original view
+      cameraHelper.visible = false;
+      helper.visible = true;
+
+      scene.background = new THREE.Color(0x000000);
+
+      // render
+      renderer.render(scene, camera);
     }
 
-    renderer.render(scene, camera);
+    // render from the 2nd camera
+    {
+      let aspect2 = setScissorForElement(view2Elem);
+
+      // adjust the camera for this aspect
+      camera2.aspect = aspect2;
+      camera2.updateProjectionMatrix();
+
+      // draw the camera helper in the 2nd view
+      cameraHelper.visible = true;
+      helper.visible = false;
+
+      scene.background = new THREE.Color(0x000040);
+
+      renderer.render(scene, camera2);
+    }
 
     requestAnimationFrame(render);
   }

@@ -1,7 +1,56 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons";
 import GUI from "lil-gui";
+class ColorGUIHelper {
+  constructor(object, prop) {
+    this.object = object;
+    this.prop = prop;
+  }
+  get value() {
+    return `#${this.object[this.prop].getHexString()}`;
+  }
+  set value(hexString) {
+    this.object[this.prop].set(hexString);
+  }
+}
 
+class DimensionGUIHelper {
+  constructor(obj, minProp, maxProp) {
+    this.obj = obj;
+    this.minProp = minProp;
+    this.maxProp = maxProp;
+  }
+  get value() {
+    return this.obj[this.maxProp] * 2;
+  }
+  set value(v) {
+    this.obj[this.maxProp] = v / 2;
+    this.obj[this.minProp] = v / -2;
+  }
+}
+
+class MinMaxGUIHelper {
+  constructor(obj, minProp, maxProp, minDif) {
+    this.obj = obj;
+    this.minProp = minProp;
+    this.maxProp = maxProp;
+    this.minDif = minDif;
+  }
+  get min() {
+    return this.obj[this.minProp];
+  }
+  set min(v) {
+    this.obj[this.minProp] = v;
+    this.obj[this.maxProp] = Math.max(this.obj[this.maxProp], v + this.minDif);
+  }
+  get max() {
+    return this.obj[this.maxProp];
+  }
+  set max(v) {
+    this.obj[this.maxProp] = v;
+    this.min = this.min; // this will call the min setter
+  }
+}
 function main() {
   const canvas = document.getElementById("c");
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
@@ -13,6 +62,7 @@ function main() {
   const camera = new THREE.PerspectiveCamera(45, 2, 0.1, 100);
   camera.position.set(0, 10, 20);
   scene.add(camera);
+
   const controls = new OrbitControls(camera, canvas);
   controls.target.set(0, 5, 0);
   controls.update();
@@ -64,6 +114,13 @@ function main() {
     const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
     scene.add(light);
   }
+  function makeXYZGUI(gui, vector3, name, onChangeFn) {
+    const folder = gui.addFolder(name);
+    folder.add(vector3, "x", -10, 10).onChange(onChangeFn);
+    folder.add(vector3, "y", 0, 10).onChange(onChangeFn);
+    folder.add(vector3, "z", -10, 10).onChange(onChangeFn);
+    folder.open();
+  }
   {
     const color = 0xffffff;
     const intensity = 1;
@@ -73,6 +130,63 @@ function main() {
     light.target.position.set(-5, 0, 0);
     scene.add(light);
     scene.add(light.target);
+    const cameraHelper = new THREE.CameraHelper(light.shadow.camera);
+    scene.add(cameraHelper);
+
+    const onChange = () => {
+      light.target.updateMatrixWorld();
+      cameraHelper.update();
+    };
+    function updateCamera() {
+      light.shadow.camera.updateProjectionMatrix();
+      cameraHelper.update();
+    }
+
+    onChange();
+
+    const gui = new GUI();
+    gui.addColor(new ColorGUIHelper(light, "color"), "value").name("color");
+    gui.add(light, "intensity", 0, 10, 0.01);
+
+    makeXYZGUI(gui, light.position, "position", onChange);
+    makeXYZGUI(gui, light.target.position, "target", onChange);
+    const folder = gui.addFolder("Shadow Camera");
+    folder.open();
+    folder
+      .add(
+        new DimensionGUIHelper(light.shadow.camera, "left", "right"),
+        "value",
+        1,
+        100,
+      )
+      .name("width")
+      .onChange(updateCamera);
+    folder
+      .add(
+        new DimensionGUIHelper(light.shadow.camera, "bottom", "top"),
+        "value",
+        1,
+        100,
+      )
+      .name("height")
+      .onChange(updateCamera);
+    const minMaxGUIHelper = new MinMaxGUIHelper(
+      light.shadow.camera,
+      "near",
+      "far",
+      0.1,
+    );
+    folder
+      .add(minMaxGUIHelper, "min", 0.1, 50, 0.1)
+      .name("near")
+      .onChange(updateCamera);
+    folder
+      .add(minMaxGUIHelper, "max", 0.1, 50, 0.1)
+      .name("far")
+      .onChange(updateCamera);
+    folder
+      .add(light.shadow.camera, "zoom", 0.01, 1.5, 0.01)
+      .onChange(updateCamera);
   }
   const sphereShadowBases = [];
   {
@@ -85,8 +199,8 @@ function main() {
       sphereWidthDivisions,
       sphereHeightDivisions,
     );
-    const planeSize = 1;
-    const shadowGeo = new THREE.PlaneGeometry(planeSize, planeSize);
+    // const planeSize = 1;
+    // const shadowGeo = new THREE.PlaneGeometry(planeSize, planeSize);
 
     const numSpheres = 15;
     for (let i = 0; i < numSpheres; ++i) {

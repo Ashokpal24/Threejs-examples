@@ -5,7 +5,7 @@ import GUI from "lil-gui";
 function main() {
   const canvas = document.getElementById("c");
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
-  //   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = true;
   const scene = new THREE.Scene();
   //   scene.background = new THREE.Color("white");
   const gui = new GUI();
@@ -52,7 +52,7 @@ function main() {
     });
     planeMat.color.setRGB(1.5, 1.5, 1.5);
     const mesh = new THREE.Mesh(planeGeo, planeMat);
-    // mesh.receiveShadow = true;
+    mesh.receiveShadow = true;
 
     mesh.rotation.x = Math.PI * -0.5;
     scene.add(mesh);
@@ -68,7 +68,7 @@ function main() {
     const color = 0xffffff;
     const intensity = 1;
     const light = new THREE.DirectionalLight(color, intensity);
-    // light.castShadow = true;
+    light.castShadow = true;
     light.position.set(0, 10, 5);
     light.target.position.set(-5, 0, 0);
     scene.add(light);
@@ -93,32 +93,32 @@ function main() {
       const base = new THREE.Object3D();
       scene.add(base);
 
-      const shadowMat = new THREE.MeshBasicMaterial({
-        map: shadowTexture,
-        transparent: true,
-        depthWrite: false,
-      });
-      const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-      shadowMesh.position.y = 0.001;
-      shadowMesh.rotation.x = Math.PI * -0.5;
+      //   const shadowMat = new THREE.MeshBasicMaterial({
+      //     map: shadowTexture,
+      //     transparent: true,
+      //     depthWrite: false,
+      //   });
+      //   const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+      //   shadowMesh.position.y = 0.001;
+      //   shadowMesh.rotation.x = Math.PI * -0.5;
 
-      const shadowSize = sphereRadius * 4;
-      shadowMesh.scale.set(shadowSize, shadowSize, shadowSize);
-      base.add(shadowMesh);
+      //   const shadowSize = sphereRadius * 4;
+      //   shadowMesh.scale.set(shadowSize, shadowSize, shadowSize);
+      //   base.add(shadowMesh);
 
       const u = i / numSpheres;
       const sphereMat = new THREE.MeshPhongMaterial();
       sphereMat.color.setHSL(u, 1, 0.75);
       const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
       sphereMesh.position.set(0, sphereRadius + 2, 0);
-      //   sphereMesh.castShadow = true;
-      //   sphereMesh.receiveShadow = true;
+      sphereMesh.castShadow = true;
+      sphereMesh.receiveShadow = true;
       base.add(sphereMesh);
 
       sphereShadowBases.push({
         base,
         sphereMesh,
-        shadowMesh,
+        // shadowMesh,
         y: sphereMesh.position.y,
       });
     }
@@ -144,7 +144,12 @@ function main() {
     }
 
     sphereShadowBases.forEach((sphereShadowBase, ndx) => {
-      const { base, sphereMesh, shadowMesh, y } = sphereShadowBase;
+      const {
+        base,
+        sphereMesh,
+        // shadowMesh,
+        y,
+      } = sphereShadowBase;
 
       const u = ndx / sphereShadowBases.length;
 
@@ -155,7 +160,7 @@ function main() {
 
       const yOff = Math.abs(Math.sin(time * 2 + ndx));
       sphereMesh.position.y = y + THREE.MathUtils.lerp(-2, 2, yOff);
-      shadowMesh.material.opacity = THREE.MathUtils.lerp(1, 0.25, yOff);
+      //   shadowMesh.material.opacity = THREE.MathUtils.lerp(1, 0.25, yOff);
     });
     renderer.render(scene, camera);
 

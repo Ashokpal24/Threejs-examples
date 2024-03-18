@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { LightProbeHelper, OrbitControls } from "three/examples/jsm/Addons";
+import { OrbitControls } from "three/examples/jsm/Addons";
 import GUI from "lil-gui";
 
 class ColorGUIHelper {
